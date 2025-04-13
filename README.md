@@ -6,9 +6,11 @@ Project structure
 ```
 istandard/
 │
-├── alembic/
+├── migrations/
 │   ├── versions/              # Migration scripts will go here
-│   └── alembic.ini            # Alembic configuration file
+│   └── env.py
+│   └── README
+│   └── script.py.mako
 │
 ├── app/
 │   ├── __init__.py            # Initialize the app module
