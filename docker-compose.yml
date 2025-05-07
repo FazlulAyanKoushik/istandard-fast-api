@@ -1,0 +1,9 @@
+services:
+  fc_poker:
+    container_name: fc_poker_app
+    build: .
+    # Optionally, if you want environment variables from your .env file:
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"

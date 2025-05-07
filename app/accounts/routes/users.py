@@ -1,9 +1,9 @@
-# app/accounts/routes/user.py
+# app/accounts/routes/users.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.accounts.models.user import User
-from app.accounts.schemas.user import UserCreate, UserResponse
+from app.accounts.schemas.users import UserCreate, UserOut
 from app.accounts.services.auth import create_access_token  # JWT generation
 
 router = APIRouter()
@@ -18,7 +18,7 @@ def get_db():
         db.close()
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=UserOut)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     print("Registering user:", user)
     # Check if user already exists

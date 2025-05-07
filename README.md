@@ -5,46 +5,28 @@ This is a python projects base repository
 Project structure
 ```
 istandard/
-│
-├── migrations/
-│   ├── versions/              # Migration scripts will go here
-│   └── env.py
-│   └── README
-│   └── script.py.mako
-│
+├── Dockerfile
+├── docker-compose.yml
+├── alembic/
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions/
+├── alembic.ini
 ├── app/
-│   ├── __init__.py            # Initialize the app module
-│   ├── main.py                # Entry point for FastAPI (starts the app)
-│   ├── config/                # Configuration folder
-│   │   └── settings.py        # Settings file (database URL, etc.)
-│   ├── accounts/              # Accounts feature (user registration, login, etc.)
-│   │   ├── __init__.py
-│   │   ├── models/            # Database models for accounts
-│   │   │   ├── __init__.py
-│   │   │   └── user.py        # User model
-│   │   ├── schemas/           # Pydantic schemas for accounts
-│   │   │   ├── __init__.py
-│   │   │   └── user.py        # User schema (for request/response validation)
-│   │   ├── routes/            # Routes for accounts (user-related tasks)
-│   │   │   ├── __init__.py
-│   │   │   └── user.py        # User routes (registration, login)
-│   │   └── db.py              # Database connection for accounts
-│   ├── products/              # Products feature (can follow the same pattern)
-│   │   ├── __init__.py
-│   │   ├── models/            # Database models for products
-│   │   │   ├── __init__.py
-│   │   │   └── product.py     # Product model
-│   │   ├── schemas/           # Pydantic schemas for products
-│   │   │   ├── __init__.py
-│   │   │   └── product.py     # Product schema
-│   │   ├── routes/            # Routes for products
-│   │   │   ├── __init__.py
-│   │   │   └── product.py     # Product routes
-│   │   └── db.py              # Database connection for products
-│
-├── requirements.txt           # Project dependencies
-├── alembic.ini                # Alembic settings
-└── README.md                  # Project documentation
+│   ├── main.py
+│   ├── accounts/
+│   │   ├── auth.py
+│   │   ├── models.py
+│   │   ├── permissions.py
+│   │   ├── routes.py
+│   │   └── schemas.py
+│   ├── config/
+│   │   ├── database.py
+│   │   └── settings.py
+├── utils/
+├── requirements.txt
+├── .env.example
+└── README.md
 ```
 
 # How to run the project
@@ -96,3 +78,12 @@ alembic downgrade -1
 ```
 <hr>
 <hr>
+
+
+### ✅ Alembic Migration Setup
+After building the image and container:
+
+```bash
+docker-compose run api alembic init alembic
+docker-compose run api alembic revision --autogenerate -m "create users table"
+docker-compose run api alembic upgrade head
