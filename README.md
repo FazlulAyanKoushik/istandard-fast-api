@@ -34,6 +34,9 @@ istandard/
 ```bash
 pip install -r requirements.txt
 alembic upgrade head
+
+```
+```bash
 uvicorn app.main:app --reload
 ```
 
