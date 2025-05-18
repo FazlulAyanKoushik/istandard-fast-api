@@ -11,6 +11,7 @@ from app.accounts.models.user import RoleEnum
 # Base
 # ────────────────────────────────────────────────────────────────────────────
 class _UserBase(BaseModel):
+    username: str = Field(..., examples=["johndoe"])
     email: EmailStr = Field(..., examples=["johndoe@example.com"])
 
 
@@ -24,6 +25,7 @@ class UserCreate(_UserBase):
     model_config = {
         "json_schema_extra": {
             "example": {
+                "username": "johndoe",
                 "email": "johndoe@example.com",
                 "password": "yourpassword",
                 "role": "end_user",

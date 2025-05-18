@@ -1,51 +1,99 @@
+
 # app/accounts/routes/users.py
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.db import SessionLocal
-from app.accounts.models.user import User
-from app.accounts.schemas.users import UserCreate, UserOut
-from app.accounts.services.auth import create_access_token  # JWT generation
+
+from datetime import timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from passlib.context import CryptContext
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import or_, Select
+from sqlalchemy.exc import IntegrityError
+
+from app.accounts.models.user import User, RoleEnum
+from app.accounts.schemas.users import UserCreate, UserOut, UserLogin, Token
+from app.accounts.services.auth import create_access_token
+from app.config.database import get_db
+from app.config.settings import settings
 
 router = APIRouter()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def _hash(password: str) -> str:
+    return pwd_context.hash(password)
 
-# Dependency to get the DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def _verify(password: str, hashed: str) -> bool:
+    return pwd_context.verify(password, hashed)
+
+async def _duplicated(
+    db: AsyncSession,
+    *,
+    username: str | None = None,
+    email: str | None = None,
+    exclude_id: int | None = None,
+) -> bool:
+    """
+    Return True if another row matches username or email.
+    """
+    conds = []
+    if username:
+        conds.append(User.username == username)
+    if email:
+        conds.append(User.email == email)
+    if not conds:
+        return False
+    stmt = select(User.id).where(or_(*conds))
+    if exclude_id:
+        stmt = stmt.where(User.id != exclude_id)
+    return (await db.execute(stmt)).scalars().first() is not None
 
 
 @router.post("/register", response_model=UserOut)
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    print("Registering user:", user)
-    # Check if user already exists
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+async def create_user(
+    new_user: UserCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    if await _duplicated(db, username=new_user.username, email=new_user.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or email already registered",
+        )
 
-    # Create new user
-    db_user = User(username=user.username, email=user.email, password=user.password)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    print("Registered user:", db_user)
-    return db_user
+    user = User(
+        username=new_user.username,
+        email=new_user.email,
+        hashed_password=_hash(new_user.password),
+        role=new_user.role or RoleEnum.MODERATOR,
+    )
+    db.add(user)
+    try:
+        await db.commit()  # Save user
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or email already registered",
+        )
+    await db.refresh(user)
+    return user
 
 
-@router.post("/login")
-def login(user: UserCreate, db: Session = Depends(get_db)):
-    # Check if user exists
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if not db_user:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+@router.post("/login", response_model=Token)
+async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
+    stmt = select(User).where(User.email == user.email)
+    res = await db.execute(stmt)
+    db_user: User | None = res.scalars().first()
 
-    # Here, you should verify the password (using bcrypt or another hashing library)
-    if db_user.password != user.password:  # This is just a simple check. In production, use hashed passwords
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+    if not db_user or not _verify(user.password, db_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect email or password",
+        )
 
-    # Create a JWT token
-    access_token = create_access_token(data={"sub": db_user.email})
+    expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        user_id=db_user.id,
+        role=db_user.role,
+        expires_delta=expires,
+    )
     return {"access_token": access_token, "token_type": "bearer"}
