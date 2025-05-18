@@ -1,5 +1,4 @@
-# Base-Repo
-This is a python projects base repository
+# FastAPI Project Template 
 
 
 Project structure
