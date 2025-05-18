@@ -90,3 +90,15 @@ After building the image and container:
 docker-compose run api alembic init alembic
 docker-compose run api alembic revision --autogenerate -m "create users table"
 docker-compose run api alembic upgrade head
+```
+
+### ✅ Delete Pycache Files
+Windows powershell: 
+
+```bash
+Get-ChildItem -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force
+```
+macOS/Linux: 
+```bash
+find . -type d -name "__pycache__" -exec rm -r {} +
+```
