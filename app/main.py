@@ -13,6 +13,8 @@ from app.accounts.services.auth import get_password_hash
 from app.config.database import engine, AsyncSessionLocal
 from app.config.settings import settings
 
+from decouple import config
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
@@ -22,9 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 # Superuser details
-SUPER_USERNAME = "sevensix-admin"
-SUPER_PASSWORD = "JBC@2025"
-SUPER_EMAIL = "jbc.sevensix@gmail.com"
+SUPER_USERNAME = config("SUPER_USERNAME", default="admin")
+SUPER_PASSWORD = config("SUPER_PASSWORD", default="JBC@2025")
+SUPER_EMAIL = config("SUPER_EMAIL", default="jbc.sevensix@gmail.com")
 
 async def apply_alembic_migrations():
     """Run Alembic migrations automatically at startup using subprocess."""
