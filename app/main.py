@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.accounts.models.user import User, RoleEnum
-from app.accounts.routes.users import router as accounts_router
+from app.accounts.routes.users import router as accounts_router, admin_router
 from app.accounts.services.auth import get_password_hash
 from app.config.database import engine, AsyncSessionLocal
 from app.config.settings import settings
@@ -105,7 +105,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(accounts_router)
+app.include_router(accounts_router, prefix="/accounts", tags=["Accounts"])
+app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 
 @app.get("/", tags=["Root"])
 async def root():

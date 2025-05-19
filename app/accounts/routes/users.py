@@ -11,11 +11,16 @@ from sqlalchemy import or_, Select
 from sqlalchemy.exc import IntegrityError
 
 from app.accounts.models.user import User, RoleEnum
+from app.accounts.permissions import admin_required
 from app.accounts.schemas.users import UserCreate, UserOut, UserLogin, Token
 from app.accounts.services.auth import create_access_token
 from app.config.database import get_db
 from app.config.settings import settings
 
+
+# --------------------------------------------------------------------------- #
+# Shared utilities                                                            #
+# --------------------------------------------------------------------------- #
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -78,6 +83,9 @@ async def create_user(
     return user
 
 
+# --------------------------------------------------------------------------- #
+# Public route: login                                                         #
+# --------------------------------------------------------------------------- #
 @router.post("/login", response_model=Token)
 async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
     stmt = select(User).where(User.email == user.email)
@@ -97,3 +105,18 @@ async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
         expires_delta=expires,
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+
+# --------------------------------------------------------------------------- #
+# Admin‑only routes: user CRUD                                                #
+# --------------------------------------------------------------------------- #
+admin_router = APIRouter(
+    prefix="/users",
+    dependencies=[Depends(admin_required)],
+)
+
+@admin_router.get("", response_model=list[UserOut])
+async def list_users(db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(User))
+    return res.scalars().all()
